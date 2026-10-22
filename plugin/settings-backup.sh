@@ -7,7 +7,7 @@ if [ -z "$1" ] ; then
 fi
 
 AUTOINSTALL="no"
-if [ "$1" = "-a" ] ; then
+if [ "$1" == "-a" ] ; then
 	AUTOINSTALL="yes"
 	shift
 fi
@@ -29,15 +29,19 @@ USER_AUTOINSTALL=/etc/autoinstall
 INSTALLED=/etc/installed
 TEMP_INSTALLED=/tmp/installed
 RESTORE_TEMP=/tmp/restore.cfg
-
-rm -f "$RESTORE_TEMP" /tmp/rootcron /tmp/crontab /tmp/fstab /tmp/passwd /tmp/shadow "$TEMP_INSTALLED"
-
 MACADDR=`cat /sys/class/net/eth0/address | tr -d :`
 [ -z "$MACADDR" ] && MACADDR=nomac
 
 # prepare special files for backup
 echo "Backup to $BACKUPDIR/backup/"
 [ ! -d "$BACKUPDIR/backup" ] && mkdir -p "$BACKUPDIR/backup"
+
+if [ "$2" == "1" -a -f "$BACKUPDIR/backup/PLi-AutoBackup.tar.gz" ] ; then
+    echo "save previous backup to $BACKUPDIR/backup/"
+    cd "$BACKUPDIR/backup/"
+    now=$(date +"%Y%m%d_%H%M")
+    tar -czf "$BACKUPDIR/backup/backup.$now.tar.gz" "PLi-AutoBackup$MACADDR.tar.gz" "autoinstall$MACADDR"
+fi
 
 for bckfile in $BACKUPFILE $USER_BACKUPFILE ; do
     if [ -f $bckfile ] ; then
@@ -65,22 +69,17 @@ fi
 [ -f /var/spool/cron/crontabs/root ] && cat /var/spool/cron/crontabs/root >> /tmp/rootcron
 
 # remove duplicate lines in case multiple are found
-if [ -f /tmp/rootcron ]; then
-	awk '!NF || !x[$0]++' /tmp/rootcron > /tmp/crontab
-	rm /tmp/rootcron
-	echo /tmp/crontab >> $RESTORE_TEMP
-fi
+awk '{!seen[$0]++};END{for(i in seen) if(seen[i]==1)print i}' /tmp/rootcron > /tmp/crontab
+rm /tmp/rootcron
+echo /tmp/crontab >> $RESTORE_TEMP
 
 # create the backup tarball
-if ! tar -czf "$BACKUPDIR/backup/PLi-AutoBackup$MACADDR.tar.gz" --files-from="$RESTORE_TEMP" 2> /dev/null; then
-	echo "Failed to create backup archive"
-	exit 1
-fi
+tar -czf "$BACKUPDIR/backup/PLi-AutoBackup$MACADDR.tar.gz" --files-from=$RESTORE_TEMP 2> /dev/null
 ln -f -s PLi-AutoBackup$MACADDR.tar.gz "$BACKUPDIR/backup/PLi-AutoBackup.tar.gz" || \
 cp -p "$BACKUPDIR/backup/PLi-AutoBackup$MACADDR.tar.gz" "$BACKUPDIR/backup/PLi-AutoBackup.tar.gz"
 
 # create the autoinstall file
-if [ "$AUTOINSTALL" = "yes" -a -f $INSTALLED ] ; then
+if [ "$AUTOINSTALL" == "yes" -a -f $INSTALLED ] ; then
 	echo "Generating $BACKUPDIR/backup/autoinstall$MACADDR"
 	opkg list_installed | cut -d ' ' -f 1 > $TEMP_INSTALLED
 	diff $INSTALLED $TEMP_INSTALLED | grep "^+" | grep -v "^+++ $TEMP_INSTALLED" | \
@@ -101,7 +100,7 @@ fi
 # mark the backup done
 touch "$BACKUPDIR/backup/.timestamp"
 
-# cleanup
+# cleanuo
 rm -f /tmp/restore.cfg
 rm -f /tmp/crontab
 rm -f /tmp/fstab

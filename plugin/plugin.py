@@ -1,59 +1,25 @@
+from __future__ import absolute_import
+from __future__ import print_function
 from . import _
 import time
 import os
 import enigma
-import traceback
 from Plugins.Plugin import PluginDescriptor
-from Components.config import config, configfile, ConfigEnableDisable, ConfigSubsection, ConfigClock, ConfigOnOff, ConfigSelection, ConfigText
-from Components.ParentalControl import parentalControl
+from Components.config import config, \
+			ConfigEnableDisable, ConfigSubsection, \
+			ConfigClock, ConfigOnOff, ConfigText
 
 #Set default configuration
 config.plugins.autobackup = ConfigSubsection()
+config.plugins.autobackup.wakeup = ConfigClock(default = ((3*60) + 0) * 60) # 3:00
 config.plugins.autobackup.enabled = ConfigEnableDisable(default = False)
-config.plugins.autobackup.frequency = ConfigSelection(default="daily", choices=[
-	("1", _("Every hour")),
-	("2", _("Every 2 hours")),
-	("4", _("Every 4 hours")),
-	("6", _("Every 6 hours")),
-	("12", _("Every 12 hours")),
-	("daily", _("Daily")),
-	("monday", _("Every Monday")),
-	("tuesday", _("Every Tuesday")),
-	("wednesday", _("Every Wednesday")),
-	("thursday", _("Every Thursday")),
-	("friday", _("Every Friday")),
-	("saturday", _("Every Saturday")),
-	("sunday", _("Every Sunday")),
-])
-config.plugins.autobackup.wakeup = ConfigClock(default = ((3*60) + 0) * 60)
-config.plugins.autobackup.lastbackup = ConfigText(default="0")
 config.plugins.autobackup.autoinstall = ConfigOnOff(default = True)
 config.plugins.autobackup.where = ConfigText(default = "/media/hdd")
 config.plugins.autobackup.epgcache = ConfigOnOff(default = False)
-config.plugins.autobackup.keeparchives = ConfigSelection(default="1", choices=[
-	("1", "1"),
-	("2", "2"),
-	("3", "3"),
-	("5", "5"),
-	("7", "7"),
-	("10", "10"),
-	("14", "14"),
-	("20", "20"),
-	("28", "28"),
-	("42", "42"),
-	("50", "50"),
-	("72", "72"),
-	("all", _("All")),
-])
-config.plugins.autobackup.backupmode = ConfigSelection(default="archive_only", choices=[
-		("archive_only", _("Archive only")),
-		("local_and_archive", _("Local backup and archive")),
-])
-
+config.plugins.autobackup.prevbackup = ConfigOnOff(default = False)
 
 # Global variables
 autoStartTimer = None
-container = None
 
 ##################################
 # Configuration GUI
@@ -61,129 +27,37 @@ container = None
 BACKUP_SCRIPT = "/usr/lib/enigma2/python/Plugins/Extensions/AutoBackup/settings-backup.sh"
 
 
-def backupCommand(where=None, fullArchive=False):
+def backupCommand():
 	cmd = BACKUP_SCRIPT
-	if config.plugins.autobackup.autoinstall.value or fullArchive:
+	if config.plugins.autobackup.autoinstall.value:
 		cmd += " -a"
-	cmd += " " + (where or config.plugins.autobackup.where.value)
+	cmd += " " + config.plugins.autobackup.where.value
+	cmd += " " + str(int(config.plugins.autobackup.prevbackup.value))
 	return cmd
 
-def setLastBackupTime():
-	config.plugins.autobackup.lastbackup.value = str(int(time.time()))
-	config.plugins.autobackup.lastbackup.save()
-	configfile.save()
 
-def writeLog(text, mode="a"):
-    try:
-        with open("/tmp/autobackup.log", mode) as f:
-            f.write(text)
-    except Exception as ex:
-        print("[AutoBackup] Failed to write log:", ex)
+def runBackup():
+	destination = config.plugins.autobackup.where.value
+	if destination:
+		try:
+			global container  # Need to keep a ref alive...
 
-def prepareBackup():
-	db = enigma.eDVBDB.getInstance()
-	db.saveServicelist()
-	db.saveIptvServicelist()
-	parentalControl.save()
-	# always write /etc/enigma2/settings last
-	configfile.save()
+			def appClosed(retval):
+				global container
+				print("[AutoBackup] complete, result:", retval)
+				container = None
 
-def runBackup(flashImagePars=None):
-	global container
-
-	if container is not None:
-		print("[AutoBackup] backup already running")
-		return False
-
-	if flashImagePars:
-		destination, callback = flashImagePars
-		archiveOnly = False
-	else:
-		destination = config.plugins.autobackup.where.value
-		callback = None
-		archiveOnly = (config.plugins.autobackup.backupmode.value == "archive_only")
-
-	if not destination:
-		return False
-
-	prepareBackup()
-
-	try:
-		from .ui import ArchiveCreator
-
-		# For local+archive mode, ArchiveCreator is instantiated only
-		# after the local backup has completed, matching the original behavior.
-		archivePending = [not archiveOnly]
-		archiveCreator = [
-			ArchiveCreator(destination) if archiveOnly else None
-		]
-
-		def appClosed(retval):
-			global container
-
-			# The first stage of local+archive completed successfully.
-			if not retval and archivePending[0]:
-				archivePending[0] = False
-				archiveCreator[0] = ArchiveCreator(destination)
-
-				backupDir = os.path.join(destination, "backup")
-				archiveCreator[0].createInfo(backupDir)
-
-				cmd = archiveCreator[0].buildArchiveCommand(
-					backupDir,
-					removeInfo=True
-				)
-
-				executeRetval = container.execute(cmd)
-				if executeRetval:
-					print("[AutoBackup] failed to execute archive")
-					container = None
-					if callback:
-						callback(None, executeRetval, None)
-
-				return
-
-			# Complete archive-only mode or the second stage of local+archive.
-			if not retval:
-				if archiveCreator[0] is not None:
-					archiveCreator[0].removeOldArchives()
-
-				setLastBackupTime()
-
-			print("[AutoBackup] complete, result:", retval)
-			container = None
-			if callback:
-				callback(None, retval, None)
-
-		def dataAvail(data):
-			if isinstance(data, bytes):
-				data = data.decode("utf-8", errors="replace")
-
-			print("[AutoBackup]", data.rstrip())
-			writeLog(data, "a")
-
-		if archiveOnly:
-			cmd = archiveCreator[0].buildCurrentSettingsCommand()
-		else:
-			cmd = backupCommand(destination, fullArchive=True)
-
-		writeLog("Automatic backup:\n", "w")
-		print("[AutoBackup] start automatic backup")
-
-		container = enigma.eConsoleAppContainer()
-		container.appClosed.append(appClosed)
-		container.dataAvail.append(dataAvail)
-
-		if container.execute(cmd):
-			writeLog("Failed to execute: %s\n" % cmd, "a")
-			container = None
-			return False
-		return True
-
-	except Exception:
-		writeLog("FAIL:\n%s" % traceback.format_exc(), "a")
-		container = None
-		return False
+			def dataAvail(data):
+				print("[AutoBackup]", data.rstrip())
+			print("[AutoBackup] start daily backup")
+			cmd = backupCommand()
+			container = enigma.eConsoleAppContainer()
+			if container.execute(cmd):
+				raise (Exception, "failed to execute:" + cmd)
+			container.appClosed.append(appClosed)
+			container.dataAvail.append(dataAvail)
+		except Exception as e:
+			print("[AutoBackup] FAIL:", e)
 
 
 def main(session, **kwargs):
@@ -194,124 +68,59 @@ def main(session, **kwargs):
 def doneConfiguring(session, retval):
 	"user has closed configuration, check new values...."
 	global autoStartTimer
-	if autoStartTimer is not None and not autoStartTimer.startupCheck:
+	if autoStartTimer is not None:
 		autoStartTimer.update()
-
 
 ##################################
 # Autostart section
 
+
 class AutoStartTimer:
-	STARTUP_DELAY = 120
-
-	WEEKDAYS = (
-		"monday",
-		"tuesday",
-		"wednesday",
-		"thursday",
-		"friday",
-		"saturday",
-		"sunday",
-	)
-
 	def __init__(self, session):
 		self.session = session
 		self.timer = enigma.eTimer()
 		self.timer.callback.append(self.onTimer)
-		self.wakeTime = -1
-		self.startupCheck = config.plugins.autobackup.enabled.value
-		if self.startupCheck:
-			self.timer.startLongTimer(self.STARTUP_DELAY)
+		self.update()
 
-	def getScheduleTimes(self, now=None):
-		if not config.plugins.autobackup.enabled.value:
-			return -1, -1
-
-		now = int(time.time()) if now is None else now
-		localNow = time.localtime(now)
-		clock = config.plugins.autobackup.wakeup.value
-		frequency = config.plugins.autobackup.frequency.value
-
-		def makeTime(dayOffset, hour):
-			return int(time.mktime((
-				localNow.tm_year,
-				localNow.tm_mon,
-				localNow.tm_mday + dayOffset,
-				hour,
-				clock[1],
-				0,
-				-1,
-				-1,
-				-1
-			)))
-
-		if frequency.isdigit():
-			interval = int(frequency)
-			hours = range(clock[0] % interval, 24, interval)
-			candidates = [makeTime(dayOffset, hour) for dayOffset in (-1, 0, 1) for hour in hours]
-		elif frequency == "daily":
-			candidates = [makeTime(dayOffset, clock[0]) for dayOffset in (-1, 0, 1)]
+	def getWakeTime(self):
+		if config.plugins.autobackup.enabled.value:
+			clock = config.plugins.autobackup.wakeup.value
+			nowt = time.time()
+			now = time.localtime(nowt)
+			return int(time.mktime((now.tm_year, now.tm_mon, now.tm_mday,
+					clock[0], clock[1], 0, now.tm_wday, now.tm_yday, now.tm_isdst)))
 		else:
-			weekday = self.WEEKDAYS.index(frequency)
-			candidates = [makeTime(dayOffset, clock[0]) for dayOffset in range(-7, 8)]
-			candidates = [candidate for candidate in candidates if time.localtime(candidate).tm_wday == weekday]
-
-		previous = [candidate for candidate in candidates if candidate <= now]
-		following = [candidate for candidate in candidates if candidate > now]
-
-		return (
-			max(previous) if previous else -1,
-			min(following) if following else -1
-		)
-
-	def checkMissedBackup(self):
-		if not config.plugins.autobackup.enabled.value:
-			return False
-
-		previous = self.getScheduleTimes()[0]
-
-		try:
-			lastBackup = int(config.plugins.autobackup.lastbackup.value)
-		except (TypeError, ValueError):
-			lastBackup = 0
-
-		if previous > lastBackup:
-			print("[AutoBackup] no backup found since the last scheduled time")
-			return runBackup()
-
-		return False
+			return -1
 
 	def update(self, atLeast=0):
 		self.timer.stop()
-		self.startupCheck = False
+		wake = self.getWakeTime()
 		now = int(time.time())
-		unused, self.wakeTime = self.getScheduleTimes(now + atLeast)
-		if self.wakeTime > 0:
-			next = self.wakeTime - now
+		if wake > 0:
+			if wake < now + atLeast:
+				# Tomorrow.
+				wake += 24 * 3600
+			next = wake - now
 			# it could be that we do not have the correct system time yet,
 			# limit the update interval to 1h, to make sure we try again soon
 			if next > 3600:
 				next = 3600
-			# A non-positive value would stop the timer.
+			# also, depending on the value of 'atLeast', next could be negative.
+			# which would stop our time
 			if next <= 0:
 				next = 60
 			self.timer.startLongTimer(next)
 		else:
-			self.wakeTime = -1
-		return self.wakeTime
+			wake = -1
+		return wake
 
 	def onTimer(self):
 		self.timer.stop()
-		if self.startupCheck:
-			self.startupCheck = False
-			backupStarted = self.checkMissedBackup()
-			self.update(60 if backupStarted else 0)
-			return
-
 		now = int(time.time())
+		wake = self.getWakeTime()
 		# If we're close enough, we're okay...
 		atLeast = 0
-		if self.wakeTime > 0 and abs(self.wakeTime - now) < 60:
+		if abs(wake - now) < 60:
 			runBackup()
 			atLeast = 60
 		self.update(atLeast)
