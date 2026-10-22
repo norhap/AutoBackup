@@ -1,0 +1,199 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: milo\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-08-18 06:17+0300\n"
+"PO-Revision-Date: \n"
+"Last-Translator: Frenske <voorzitter@openpli.org>\n"
+"Language-Team: PLi <ims21@users.sourceforge.net>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.3.1\n"
+"Plural-Forms: \n"
+
+#: ../plugin.py:137
+msgid "Auto backup"
+msgstr "Copia Automática"
+
+#: ../ui.py:104 ../ui.py:152
+msgid "AutoBackup Configuration"
+msgstr "Configuración de Copia Automática"
+
+#: ../plugin.py:141
+msgid "Automatic settings backup"
+msgstr "Ajustes Copia Automática"
+
+#: ../ui.py:122
+msgid "Automatic start time"
+msgstr "Hora de inicio de la copia de seguridad"
+
+#: ../ui.py:203
+msgid "Backup EPG cache"
+msgstr "Copiar Caché EPG en la Copia Automática"
+
+#: ../ui.py:120
+msgid "Backup location"
+msgstr "Ubicación de la copia de seguridad"
+
+#: ../ui.py:24 ../ui.py:43
+msgid "CF"
+msgstr "FQ"
+
+#: ../ui.py:128 ../ui.py:373
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: ../ui.py:321
+msgid ""
+"Choose a backup.\n"
+"This will delete autoinstall list.\n"
+"Do you really want to continue?"
+msgstr ""
+"Elija una copia de seguridad.\n"
+"Esto eliminará la lista de instalación automática.\n"
+"¿Quieres continuar?"
+
+#: ../ui.py:292
+msgid ""
+"Choose a backup.\n"
+"This will reinstall all plugins from your backup.\n"
+"Do you really want to reinstall?"
+msgstr ""
+"Elija una copia de seguridad.\n"
+"Esto reinstalará todos los plugins desde su copia de seguridad.\n"
+"¿Quieres reinstalar?"
+
+#: ../ui.py:253
+msgid ""
+"Choose settings backup which should be restored.\n"
+"Do you really want to restore these settings and restart?"
+msgstr ""
+"Elija la configuración de la Copia que debe restaurarse.\n"
+"¿Restaurar esta configuración y reiniciar?"
+
+#: ../ui.py:123
+msgid "Create Autoinstall"
+msgstr "Crear Autoinstalación"
+
+#: ../ui.py:121
+msgid "Daily automatic backup"
+msgstr "Copia de seguridad automática diaria"
+
+#: ../ui.py:411
+msgid "Deselect"
+msgstr "Deseleccionar"
+
+#: ../ui.py:260
+msgid "Do you want to restore your settings?"
+msgstr "¿Quieres restaurar tu configuración?"
+
+#: ../ui.py:345
+msgid "Done"
+msgstr "Hecho"
+
+#: ../ui.py:124
+msgid "EPG cache backup"
+msgstr "Copia de seguridad de Caché EPG"
+
+#: ../ui.py:343
+msgid "Failed"
+msgstr "Fallido"
+
+#: ../ui.py:22 ../ui.py:45
+msgid "Harddisk"
+msgstr "Disco Duro"
+
+#: ../ui.py:178
+msgid "Last backup date"
+msgstr "Fecha de la última copia de seguridad"
+
+#: ../ui.py:130
+msgid "Manual"
+msgstr "Manual"
+
+#: ../ui.py:289 ../ui.py:318
+msgid "No autoinstall list found"
+msgstr "No se encontró ninguna lista de instalación automática"
+
+#: ../ui.py:180 ../ui.py:183
+msgid "No backup present"
+msgstr "No hay copia presente"
+
+#: ../ui.py:250
+msgid "No settings backups found"
+msgstr "No se encontraron copias de seguridad de configuración"
+
+#: ../ui.py:171
+msgid "No suitable media found, insert USB stick, flash card or harddisk."
+msgstr "No se encontraron medios adecuados, inserte una memoria USB, una tarjeta flash o un disco duro."
+
+#: ../ui.py:117
+msgid "Nowhere"
+msgstr "En ningún lugar"
+
+#: ../ui.py:129
+msgid "OK"
+msgstr "OK"
+
+#: ../ui.py:424
+msgid "Really close without saving settings?"
+msgstr "¿Cerrar sin guardar la configuración?"
+
+#: ../ui.py:205
+msgid "Remove autoinstall list"
+msgstr "Eliminar lista de instalación automática"
+
+#: ../ui.py:131 ../ui.py:206
+msgid "Restore"
+msgstr "Restaurar Configuración"
+
+#: ../ui.py:202
+msgid "Run a backup now"
+msgstr "Ejecute una copia de seguridad ahora"
+
+#: ../ui.py:204
+msgid "Run autoinstall"
+msgstr "Ejecutar instalación automática"
+
+#: ../ui.py:231 ../ui.py:270 ../ui.py:299
+msgid "Running..."
+msgstr "Ejecutando..."
+
+#: ../ui.py:25
+msgid "SD"
+msgstr "SD"
+
+#: ../ui.py:374
+msgid "Save"
+msgstr "Guardar"
+
+#: ../ui.py:125
+msgid "Save previous backup"
+msgstr "Guardar la copia de seguridad anterior"
+
+#: ../ui.py:413
+msgid "Select"
+msgstr "Seleccionar"
+
+#: ../ui.py:201
+msgid "Select files to backup"
+msgstr "Seleccionar archivos para hacer una copia de seguridad"
+
+#: ../ui.py:405
+msgid "Select files/folders to backup"
+msgstr "Seleccionar archivos/carpetas para hacer una copia de seguridad"
+
+#: ../ui.py:23
+msgid "USB"
+msgstr "USB"
+
+#: ../ui.py:245 ../ui.py:284 ../ui.py:313
+msgid "from: "
+msgstr "de: "
+
+#: ../ui.py:40
+msgid "root"
+msgstr "root"
